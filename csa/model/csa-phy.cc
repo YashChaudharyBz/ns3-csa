@@ -59,6 +59,24 @@ bool CsaPhy::IsClear(SlotStatePtr slotState, PacketStatePtr packetState) {
     return snr > csaRates[m_dataRate].thresholdDb;
 }
 
+double CsaPhy::GetSinr(SlotStatePtr slotState, PacketStatePtr packetState) {
+    double rxPower = slotState->packets[packetState];
+    double noiseMw = std::pow(10.0, slotState->noise / 10.0);
+    double remPowerMw = 0;
+    for(auto it = slotState->packets.begin(); it != slotState->packets.end(); it++) {
+        if(it->first != packetState) {
+            remPowerMw += std::pow(10.0, it->second / 10.0);
+        }
+    }
+    double sinr = rxPower - 10.0 * log10(noiseMw + remPowerMw);
+    return sinr;
+}
+
+bool CsaPhy::IsDecodable(SlotStatePtr slotState, PacketStatePtr packetState) {
+    double sinr = GetSinr(slotState, packetState);
+    return sinr > csaRates[m_dataRate].thresholdDb;
+}
+
 
 /*
  * -------------------------------------------

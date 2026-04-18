@@ -56,6 +56,11 @@ TypeId CsaMac::GetTypeId() {
                                       DoubleValue(1.0),
                                       MakeDoubleAccessor(&CsaMac::m_efficiency),
                                       MakeDoubleChecker<double>())
+                        .AddAttribute("IsPowerSolvable",
+                                      "Is the solver power solvable",
+                                      BooleanValue(false),
+                                      MakeBooleanAccessor(&CsaMac::m_isPowerSolvable),
+                                      MakeBooleanChecker())
                         .AddTraceSource ("EnqueueCb", 
                                       "Fired when a packet is Enqueued",
                                       MakeTraceSourceAccessor (&CsaMac::m_enqueueTrace),
@@ -85,6 +90,7 @@ CsaMac::CsaMac() {
     m_solvingAsked = false;
     m_epsilonTime = MicroSeconds(1);
     m_buffer = new SlotStateBuffer;
+    m_isPowerSolvable = false;
 }
 
 CsaMac::~CsaMac() {
@@ -152,6 +158,8 @@ void CsaMac::SetupSolver() {
     m_solver.SetBuffer(m_buffer);
     m_solver.SetForwardUpCallback(MakeCallback(&CsaMac::ForwardUp, this));
     m_solver.SetIsClearCallback(MakeCallback(&CsaPhy::IsClear, m_phy));
+    m_solver.SetIsDecodableCallback(MakeCallback(&CsaPhy::IsDecodable, m_phy));
+    m_solver.SetIsPowerSolvable(m_isPowerSolvable);
 }
 
 

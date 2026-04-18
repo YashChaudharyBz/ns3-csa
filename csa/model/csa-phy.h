@@ -89,6 +89,8 @@ public:
     */
     double GetSnr(SlotStatePtr slotState, PacketStatePtr packetState);
     bool IsClear(SlotStatePtr slotState, PacketStatePtr packetState);
+    double GetSinr(SlotStatePtr slotState, PacketStatePtr packetState);
+    bool IsDecodable(SlotStatePtr slotState, PacketStatePtr packetState);
 
     /*
     * Sending Methods

@@ -34,8 +34,13 @@ void CsaSolver::Solve() {
             continue;
         }
         CleanSlot(slot);
+        if(slotState->packets.size() == 0) {
+            continue;
+        }
         // NS_LOG_DEBUG("Solving slot " << slot << " with " << slotState->packets.size() << " packets");
+
         if(slotState->packets.size() == 1) {
+            // if not power solvable, revoke to basic strategy, i.e. check if only one packet in the slot
             NS_LOG_DEBUG("Slot has 1 packet: " << slot);
             // one fragment = fragment decoded
             // so, we increase the count for the packetState
@@ -46,9 +51,23 @@ void CsaSolver::Solve() {
                 // NS_LOG_DEBUG("Decoding packet: " << packetState->source);
                 Decode(packetState);
             }
-            // make sure to remove that packetState
-            // or it will redo itself
-            m_buffer->RemovePacketState(slot, packetState, false);
+        }
+        else if(m_isPowerSolvable) {
+            // if power solvable, get the strongest signal and check if it's decodable
+            auto mxPowerIt = slotState->packets.begin();
+            for(auto it = slotState->packets.begin(); it != slotState->packets.end(); it++) {
+                if(it->second > mxPowerIt->second) {
+                    mxPowerIt = it;
+                }
+            }
+            PacketStatePtr mxPowerPacketState = mxPowerIt->first;
+            if(m_isDecodableCallback(slotState, mxPowerPacketState)) {
+                mxPowerPacketState->count ++;
+                if(mxPowerPacketState->IsDecoded()) {
+                    // NS_LOG_DEBUG("Decoding packet: " << mxPowerPacketState->source);
+                    Decode(mxPowerPacketState);
+                }
+            }
         }
     }
 }
@@ -100,15 +119,23 @@ void CsaSolver::CleanSlot(uint32_t slot) {
 
 
 void CsaSolver::SetForwardUpCallback(ForwardUpCallback callback) {
-    m_forwardUpCallback = callback;
+    m_forwardUpCallback = callback;   
 }
 
 void CsaSolver::SetIsClearCallback(IsClearCallback callback) {
     m_isClearCallback = callback;
 }
 
+void CsaSolver::SetIsDecodableCallback(IsDecodableCallback callback) {
+    m_isDecodableCallback = callback;
+}
+
 void CsaSolver::SetBuffer(SlotStateBuffer* buffer) {
     m_buffer = buffer;
+}
+
+void CsaSolver::SetIsPowerSolvable(bool isPowerSolvable) {
+    m_isPowerSolvable = isPowerSolvable;
 }
 
 }   // namespace ns3

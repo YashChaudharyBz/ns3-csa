@@ -46,8 +46,13 @@ std::map<std::pair<uint32_t, uint32_t>, uint32_t> g_viRxCount;
 std::map<std::pair<uint32_t, uint32_t>, double> g_viDelay;
 
 void RecreateExp(uint32_t nVehicles, double lambda0, double lambda1, uint32_t packetSizeBits, RateIndex dataRate, 
-                 double sendProb, double defaultNoise, Time timeout, double efficiency, uint32_t queueSize);
+                 double sendProb, double defaultNoise, Time timeout, double efficiency, uint32_t queueSize, bool powerSolvable);
 void WriteOutput(uint32_t nVehicles, std::ofstream *outFile);
+
+// void PrintTime() {
+//     std::cout << "Time: " << Simulator::Now().GetSeconds() << std::endl;
+//     Simulator::Schedule(Seconds(0.1), &PrintTime);
+// }
 
 
 int main(int argc, char* argv[]) {
@@ -66,6 +71,7 @@ int main(int argc, char* argv[]) {
     double defaultNoise = -101.0;
     Time timeout = MilliSeconds(500);
     double efficiency = 1.0;
+    bool powerSolvable = false;
 
     CommandLine cmd;
     cmd.AddValue("nVehicles", "Number of vehicles", nVehicles);
@@ -80,6 +86,7 @@ int main(int argc, char* argv[]) {
     cmd.AddValue("defaultNoise", "Default noise", defaultNoise);
     cmd.AddValue("timeout", "Timeout", timeout);
     cmd.AddValue("efficiency", "Efficiency", efficiency);
+    cmd.AddValue("powerSolvable", "Power Solvable (NOMA-CSA)", powerSolvable);
     cmd.Parse(argc, argv);
 
     // check if datarate is valid
@@ -97,7 +104,7 @@ int main(int argc, char* argv[]) {
     *outFile << nVehicles << "," << lambda0 << "," << lambda1 << "," << packetSizeBits << "," << dataRateString << ",";
 
     // run the simulation
-    RecreateExp(nVehicles, lambda0, lambda1, packetSizeBits, dataRate, sendProb, defaultNoise, timeout, efficiency, queueSize);
+    RecreateExp(nVehicles, lambda0, lambda1, packetSizeBits, dataRate, sendProb, defaultNoise, timeout, efficiency, queueSize, powerSolvable);
 
     WriteOutput(nVehicles, outFile);
     return 0;
@@ -165,7 +172,7 @@ void ScheduleNextDeterministic (Ptr<Socket> socket, uint32_t pktSize, double lam
 }
 
 void RecreateExp(uint32_t nVehicles, double lambda0, double lambda1, uint32_t packetSizeBits, RateIndex dataRate, 
-                 double sendProb, double defaultNoise, Time timeout, double efficiency, uint32_t queueSize) {
+                 double sendProb, double defaultNoise, Time timeout, double efficiency, uint32_t queueSize, bool powerSolvable) {
     // create the nodes
     NodeContainer vehicles;
     vehicles.Create (nVehicles);
@@ -200,6 +207,7 @@ void RecreateExp(uint32_t nVehicles, double lambda0, double lambda1, uint32_t pa
     helper.SetMacAttribute("DefaultNoise", DoubleValue(defaultNoise));
     helper.SetMacAttribute("Timeout", TimeValue(timeout));
     helper.SetMacAttribute("Efficiency", DoubleValue(efficiency));
+    helper.SetMacAttribute("IsPowerSolvable", BooleanValue(powerSolvable));
 
     // setup PHY
     helper.SetPhyAttribute("DataRate", EnumValue(dataRate));
@@ -241,6 +249,7 @@ void RecreateExp(uint32_t nVehicles, double lambda0, double lambda1, uint32_t pa
     }
 
     // start simulation
+    // PrintTime();
     Simulator::Stop (Seconds (10));
     Simulator::Run ();
     Simulator::Destroy ();

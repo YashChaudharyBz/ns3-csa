@@ -88,7 +88,7 @@ private:
     double m_defaultNoise;
     Time m_timeout;
     double m_efficiency;
-    
+    bool m_isPowerSolvable;
 
     /*
     * Initialized variales

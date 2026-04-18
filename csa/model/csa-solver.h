@@ -23,14 +23,20 @@ public:
     typedef Callback<bool, SlotStatePtr, PacketStatePtr> IsClearCallback;
     void SetIsClearCallback(IsClearCallback callback);
 
+    typedef Callback<bool, SlotStatePtr, PacketStatePtr> IsDecodableCallback;
+    void SetIsDecodableCallback(IsClearCallback callback);
+
     void SetBuffer(SlotStateBuffer* buffer);
+    void SetIsPowerSolvable(bool isPowerSolvable);
 
 private:
     SlotStateBuffer* m_buffer;
     ForwardUpCallback m_forwardUpCallback;
     IsClearCallback m_isClearCallback;
+    IsDecodableCallback m_isDecodableCallback;
     std::queue<uint32_t> m_activeSlotQueue;
     uint32_t m_currentSlot;
+    bool m_isPowerSolvable;
 };
 
 }
