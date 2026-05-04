@@ -53,7 +53,8 @@ void WriteOutput(uint32_t nVehicles, std::ofstream *outFile);
 //     std::cout << "Time: " << Simulator::Now().GetSeconds() << std::endl;
 //     Simulator::Schedule(Seconds(0.1), &PrintTime);
 // }
-
+bool verbose = false;
+std::ofstream* verboseFilePtr = nullptr;
 
 int main(int argc, char* argv[]) {
     LogComponentEnable("CsaMac", ns3::LOG_LEVEL_ALL);
@@ -72,7 +73,11 @@ int main(int argc, char* argv[]) {
     Time timeout = MilliSeconds(500);
     double efficiency = 1.0;
     bool powerSolvable = false;
+    uint64_t run = 0;
+    std::string verboseFile = "verbose.csv";
+    std::string verboseFolder = "scratch/simulate-csa/";
 
+    
     CommandLine cmd;
     cmd.AddValue("nVehicles", "Number of vehicles", nVehicles);
     cmd.AddValue("lambda0", "Rate for the exponential traffic", lambda0);
@@ -87,6 +92,10 @@ int main(int argc, char* argv[]) {
     cmd.AddValue("timeout", "Timeout", timeout);
     cmd.AddValue("efficiency", "Efficiency", efficiency);
     cmd.AddValue("powerSolvable", "Power Solvable (NOMA-CSA)", powerSolvable);
+    cmd.AddValue("run", "Run number", run);
+    cmd.AddValue("verbose", "Verbose (Packet Level)", verbose);
+    cmd.AddValue("verboseFile", "Verbose File", verboseFile);
+    cmd.AddValue("verboseFolder", "Verbose Folder", verboseFolder);
     cmd.Parse(argc, argv);
 
     // check if datarate is valid
@@ -96,14 +105,23 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     RateIndex dataRate = it->second;
-
+    
     // setup output file
     fileName = folderName + fileName;
     std::ofstream *outFile = new std::ofstream(fileName.c_str(), std::ios::out);
     *outFile << "nVehicles,lambda0,lambda1,packetSizeBits,dataRate,voPSR,voDelay,viPSR,viDelay\n";
     *outFile << nVehicles << "," << lambda0 << "," << lambda1 << "," << packetSizeBits << "," << dataRateString << ",";
 
+    // setup verbose file
+    if(verbose) {
+        verboseFile = verboseFolder + verboseFile;
+        verboseFilePtr = new std::ofstream(verboseFile.c_str(), std::ios::out);
+        *verboseFilePtr << "sender,receiver,ac,delay\n";
+    }
+
     // run the simulation
+    RngSeedManager::SetSeed(12345);
+    RngSeedManager::SetRun(run);
     RecreateExp(nVehicles, lambda0, lambda1, packetSizeBits, dataRate, sendProb, defaultNoise, timeout, efficiency, queueSize, powerSolvable);
 
     WriteOutput(nVehicles, outFile);
@@ -128,10 +146,16 @@ void EnqueueCallback(uint32_t sender, uint8_t tid) {
 void ReceiveCallback(uint32_t sender, uint32_t receiver, double txTime, double rxTime, uint8_t tid) {
     AcIndex ac = QosUtilsMapTidToAc(tid);
     if(ac == AC_VO) {
+        if(verbose) {
+            *verboseFilePtr << sender << "," << receiver << "," << "VO" << "," << (rxTime - txTime) << std::endl;
+        }
         g_voRxCount[{sender, receiver}] ++;
         g_voDelay[{sender, receiver}] += (rxTime - txTime);
     }
     else if(ac == AC_VI) {
+        if(verbose) {
+            *verboseFilePtr << sender << "," << receiver << "," << "VI" << "," << (rxTime - txTime) << std::endl;
+        }
         g_viRxCount[{sender, receiver}] ++;
         g_viDelay[{sender, receiver}] += (rxTime - txTime);
     }
